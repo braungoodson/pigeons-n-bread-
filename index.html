@@ -1,0 +1,169 @@
+<!doctype html>
+<html>
+	<body>
+		<script>
+
+			var canvas = new Canvas(document,300,300);
+			var bread = [];
+			var pigeons = [new Pigeon(),new Pigeon()];
+
+			for (var i = 25; i > 0; --i) {
+				for (var j = 25; j > 0; --j) {
+					if (Math.floor(Math.random()*1000000) < 10000) {
+						bread.push(new Bread());
+					}
+				}
+			}
+
+			setInterval(update,10);
+
+			function update () {
+				canvas.flush();
+				for (var p in pigeons) {
+					pigeons[p].update();
+					canvas.drawEntity(pigeons[p]);
+				}
+				for (var b in bread) {
+					bread[b].update();
+					canvas.drawEntity(bread[b]);
+				}
+			}
+
+			/*		var values = [];
+		var weights = [];
+		var capacity = 200;
+		for (var i = 0; i < bread.length; i++) {
+			values.push(bread[i].value());
+			var pigeonLocation = this.location();
+			var breadLocation = bread[i].location();
+			var weight = (pigeonLocation.y - breadLocation.y)+(pigeonLocation.x - breadLocation.x);
+			weights.push(Math.abs(weight));
+		}
+		capacity = Math.min(Math.floor(sum(weights)),capacity);
+		var matrix = getSolutionMatrix(values,weights,capacity);
+		var subset = getOptimalSubset(matrix,weights);
+		this.nextLocation = bread[subset[0]-1].location();
+		this.location(this.location().x+10,this.location().y+10)
+		console.log(this.location());*/
+
+			function Pigeon () {
+				var e = new Entity();
+				e.fillStyle = "black";
+				e.strokeStyle = "black";
+				e.update = update;
+				return e;
+				function update () {
+					var speed = 1;
+					var p1 = {
+						x: this.x,
+						y: this.y
+					};
+					var p2 = {
+						x: this.target.x,
+						y: this.target.y
+					};
+					var dx = p2.x - p1.x;
+					var dy = p2.y - p1.y;
+					var distance = Math.sqrt(dx*dx + dy*dy);
+					var moves = distance/speed;
+					var xunits = (p2.x - p1.x)/moves;
+					var yunits = (p2.y - p1.y)/moves;
+					if (moves > 1) {
+						moves--;
+						this.x += xunits;
+						this.y += yunits;
+					}
+				}
+				function getSolutionMatrix(itemValues, weights, capacity) {
+					var matrix =  new Array(itemValues.length + 1);
+					for (var i = 0; i < matrix.length; i++){
+						matrix[i] = new Array(capacity);
+						for(var j = 0; j <= capacity; j++) {
+							matrix[i][j] = 0;
+						}
+					}
+					for(var i = 1; i <= itemValues.length; i++) {
+						for (var j = 0; j <= capacity; j++) {
+							if (j - Number(weights[i-1])  >= 0) {
+								matrix[i][j] = Math.max(matrix[i-1][j], Number(itemValues[i-1]) + matrix[i-1][j-Number(weights[i-1])]);
+							} else {
+								matrix[i][j] = matrix[i-1][j];
+							}
+						}
+					}
+					return matrix;
+				}
+				function getOptimalSubset(solutionMatrix, weights) {
+					var subset = new Array(1);
+					var numItems = 0;
+					var i = solutionMatrix.length - 1;
+					for (var j = solutionMatrix[0].length - 1; j >= 0 && i > 0; i--) {
+						// If the item is in the optimal subset, add it and subtract its weight
+						// from the column we are checking.
+						if (solutionMatrix[i][j] != solutionMatrix[i-1][j]) {
+							subset[numItems] = i;
+							j -= Number(weights[i-1]);
+							numItems++;
+						}
+					}
+					return subset;
+				}
+				function sum(array) {
+					var sum = 0;
+					for(var i = 0; i < array.length; i++) {
+						sum += Number(array[i]);
+					}
+					return sum;
+				}
+			}
+
+			function Bread () {
+				var e = new Entity();
+				e.fillStyle = "brown";
+				e.strokeStyle = "brown";
+				return e;
+			}
+
+			function Canvas ($,height,width) {
+				this.c = $.createElement('canvas');
+				this.x = this.c.getContext('2d');
+				this.c.height = height;
+				this.c.width = width;
+				this.c.style.border = '1px solid black';
+				$.body.appendChild(this.c);
+				this.flush = function () {
+					this.x.clearRect(0,0,this.c.width,this.c.height);
+				}
+				this.drawCircle = function (circle) {
+					this.x.beginPath();
+					this.x.fillStyle = circle.fillStyle;
+					this.x.strokeStyle = circle.strokeStyle;
+					this.x.lineWidth = 1;
+					this.x.arc(circle.x,circle.y,circle.radius,(Math.PI/180)*0,(Math.PI/180)*360,false);
+					this.x.stroke();
+					this.x.closePath();
+					this.x.fill()
+				}
+				this.drawEntity = function (entity) {
+					this.drawCircle(entity);
+				}
+			}
+
+			function Entity () {
+				return {
+					x: Math.floor(Math.random()*300),
+					y: Math.floor(Math.random()*300),
+					radius: 2,
+					target: {
+						x: Math.floor(Math.random()*300),
+						y: Math.floor(Math.random()*300)
+					},
+					fillStyle: '#f00',
+					strokeStyle: '#f00',
+					update: function () {}
+				};
+			}
+
+		</script>
+	</body>
+</html>
