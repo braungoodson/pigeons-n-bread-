@@ -3,9 +3,12 @@
 	<body>
 		<script>
 
-			var canvas = new Canvas(document,300,300);
+			var CANVAS_WIDTH = CANVAS_HEIGHT = 500;
+			var INFINITY = 10000000000000000000;
+			var canvas = new Canvas(document,CANVAS_WIDTH,CANVAS_HEIGHT);
 			var bread = [];
 			var pigeons = [new Pigeon(),new Pigeon()];
+			var interval;
 
 			for (var i = 25; i > 0; --i) {
 				for (var j = 25; j > 0; --j) {
@@ -15,63 +18,87 @@
 				}
 			}
 
-			setInterval(update,10);
+			interval = setInterval(update,1);
 
 			function update () {
 				canvas.flush();
-				for (var p in pigeons) {
-					pigeons[p].update();
-					canvas.drawEntity(pigeons[p]);
-				}
 				for (var b in bread) {
 					bread[b].update();
 					canvas.drawEntity(bread[b]);
 				}
+				var fullPigeons = 0;
+				for (var p in pigeons) {
+					pigeons[p].update(bread);
+					canvas.drawEntity(pigeons[p]);
+					if (pigeons[p].full) {
+						fullPigeons++;
+						if (fullPigeons == pigeons.length) {
+							pigeons = [new Pigeon(),new Pigeon()];
+							for (var i = 25; i > 0; --i) {
+								for (var j = 25; j > 0; --j) {
+									if (Math.floor(Math.random()*1000000) < 10000) {
+										bread.push(new Bread());
+									}
+								}
+							}
+						}
+					}
+				}
 			}
-
-			/*		var values = [];
-		var weights = [];
-		var capacity = 200;
-		for (var i = 0; i < bread.length; i++) {
-			values.push(bread[i].value());
-			var pigeonLocation = this.location();
-			var breadLocation = bread[i].location();
-			var weight = (pigeonLocation.y - breadLocation.y)+(pigeonLocation.x - breadLocation.x);
-			weights.push(Math.abs(weight));
-		}
-		capacity = Math.min(Math.floor(sum(weights)),capacity);
-		var matrix = getSolutionMatrix(values,weights,capacity);
-		var subset = getOptimalSubset(matrix,weights);
-		this.nextLocation = bread[subset[0]-1].location();
-		this.location(this.location().x+10,this.location().y+10)
-		console.log(this.location());*/
 
 			function Pigeon () {
 				var e = new Entity();
-				e.fillStyle = "black";
-				e.strokeStyle = "black";
+				var color = '#'+(Math.random()*0xFFFFFF<<0).toString(16);
+				e.fillStyle = color;
+				e.strokeStyle = color;
+				e.full = false;
+				e.radius = 5;
 				e.update = update;
 				return e;
-				function update () {
-					var speed = 1;
-					var p1 = {
-						x: this.x,
-						y: this.y
-					};
-					var p2 = {
-						x: this.target.x,
-						y: this.target.y
-					};
-					var dx = p2.x - p1.x;
-					var dy = p2.y - p1.y;
-					var distance = Math.sqrt(dx*dx + dy*dy);
-					var moves = distance/speed;
-					var xunits = (p2.x - p1.x)/moves;
-					var yunits = (p2.y - p1.y)/moves;
-					if (moves > 1) {
-						moves--;
-						this.x += xunits;
-						this.y += yunits;
+				function update (bread) {
+					var values = [];
+					var weights = [];
+					var capacity = INFINITY;
+					for (var i = 0; i < bread.length; i++) {
+						values.push(bread[i].value);
+						var weight = (this.y - bread[i].y)+(this.x - bread[i].x);
+						weights.push(Math.abs(weight));
+					}
+					capacity = Math.min(Math.floor(sum(weights)),capacity);
+					var matrix = getSolutionMatrix(values,weights,capacity);
+					var subset = getOptimalSubset(matrix,weights);
+					console.log(subset.length);
+					if (subset.length > 1) {
+						var target = {
+							index: subset[0]-1,
+							bread: bread[subset[0]-1],
+							x: bread[subset[0]-1].x,
+							y: bread[subset[0]-1].y
+						};
+						var speed = 1;
+						var p1 = {
+							x: this.x,
+							y: this.y
+						};
+						var p2 = {
+							x: target.x,
+							y: target.y
+						};
+						var dx = p2.x - p1.x;
+						var dy = p2.y - p1.y;
+						var distance = Math.sqrt(dx*dx + dy*dy);
+						var moves = distance/speed;
+						var xunits = (p2.x - p1.x)/moves;
+						var yunits = (p2.y - p1.y)/moves;
+						if (moves > 1) {
+							moves--;
+							this.x += xunits;
+							this.y += yunits;
+						} else {
+							this.bread.push(bread.splice(target.index,1));
+						}
+					} else {
+						this.update = function () {console.log('fill')}
 					}
 				}
 				function getSolutionMatrix(itemValues, weights, capacity) {
@@ -119,8 +146,9 @@
 
 			function Bread () {
 				var e = new Entity();
-				e.fillStyle = "brown";
-				e.strokeStyle = "brown";
+				e.fillStyle = "black";
+				e.strokeStyle = "black";
+				e.value = Math.floor(Math.random()*1000);
 				return e;
 			}
 
@@ -151,12 +179,14 @@
 
 			function Entity () {
 				return {
-					x: Math.floor(Math.random()*300),
-					y: Math.floor(Math.random()*300),
+					id: Math.floor(Math.random()),
+					bread: [],
+					x: Math.floor(Math.random()*CANVAS_WIDTH),
+					y: Math.floor(Math.random()*CANVAS_HEIGHT),
 					radius: 2,
 					target: {
-						x: Math.floor(Math.random()*300),
-						y: Math.floor(Math.random()*300)
+						x: Math.floor(Math.random()*CANVAS_WIDTH),
+						y: Math.floor(Math.random()*CANVAS_HEIGHT)
 					},
 					fillStyle: '#f00',
 					strokeStyle: '#f00',
